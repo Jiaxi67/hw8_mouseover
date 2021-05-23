@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        .chart-container {
+            max-width: 1050px;
+            /* border: 3px solid red; */
+            margin: 0 auto;
+            /* auto centers the div */
+            font-family: 'Arial', 'Arial Narrow', Arial, sans-serif;
+        }
+
+        svg {
+            /* margin: 0 auto; */
+            /* row-gap: 50px; */
+            /* border: 2px solid purple; */
+            overflow: visible;
+        }
+
+
+        h1 {
+            border: none;
+        }
+
+        .pop-up {
+            position: absolute; 
+            /* border: 1px solid black; */
+            border-radius: 1px;
+            line-height: 1.2;
+            width: 200px;
+            pointer-events: none;
+            background-color: white;
+            padding: 10px
+        }
+        .grid-example {
+            display: grid;
+            grid-template-columns: 500px; 
+            /* how big each column should be, two numbers means 2 rows */
+            grid-template-rows: 50px;
+            /* how big is the vertical distance */
+            row-gap: 100px;
+            column-gap: 100px;
+        }
+        img {
+            width: 100%;
+            /* make the svg fits the container */
+        }
+        .key {
+  font: 8px;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.key path {
+  display: none;
+}
+
+.key line {
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+.source {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+
+
+    </style>
+    <!-- add your script blocks at the end -->
+
+</head>
+
+<body>
+    <div class="chart-container">
+        <h1 class="headline">
+            Amount of uninsured Children in the U.S. in 2021
+                      (County Level)  
+        </h1>
+
+        <div class="grid-example">
+            <object data="simple-key.svg" width=300px>
+                
+            </object>
+
+
+        </div>
+
+        <svg width="1050px" height="500px">
+
+        </svg>
+        <p class="source">Source: County Health Rankings & Roadmaps (https://www.countyhealthrankings.org/explore-health-rankings/rankings-data-documentation)</p>
+       
+
+        <div class="pop-up">
+
+        </div>
+
+    </div>
+</body>
+
+
+<!-- we're using d3 version 6 (the latest version) for all out work -->
+<script src="https://d3js.org/d3.v6.min.js"></script>
+
+<!-- load topojson script -->
+<script src="https://unpkg.com/topojson@3"></script>
+
+
+
+<script>
+    console.log({ d3 })
+    console.log({ topojson })
+    
+
+    
+
+        // //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise
+        Promise.all([ //waits for all the data to load, then when loaded will return it all in one array called res
+        d3.json('county-topo-try.json'),
+    ])
+        .then(ready)
+        .catch((err) => {
+            console.log(err);
+        });
+
+        
+    function ready(res) {
+        console.log(res[0])
+        let raw = res[0]
+
+        let county = topojson.feature(raw, raw.objects.county);
+
+        let width = 1050;
+        let height = 500;
+
+        console.log(county)
+
+        let svg = d3.select("body").select("svg")
+
+        let myProjection = d3.geoAlbersUsa()
+            .fitSize([width, height], county)
+
+
+
+        //path function
+        let path = d3.geoPath()
+            .projection(myProjection)
+
+        // let innerlines = topojson.mesh(raw, raw.objects.state, function (a, b) {
+        //     return a != b;
+        // });
+
+        
+        
+        
+
+
+        svg
+            .selectAll(".counties1")
+            .data(county.features)
+            .join("path")
+            .attr("d", path)
+            .style("fill", "none")
+            .style("stroke", "#333")
+            .style("pointer-events", "none")
+
+
+        let counties1 = svg
+            .append("path")
+            // .attr("d", path(innerlines))
+            .style("fill", "none")
+            .style("stroke", "#333")
+            .style("stroke-width", 1)
+            .style("pointer-events", "none")
+    
+        
+        let color = d3.scaleQuantile()
+            .domain([79,138,209,314,480,819,1832])
+            // .domain([0,d3.max(county, function (d) { return d.properties.Unin_children })])
+            .range(d3.schemePurples[8])
+
+        
+
+
+        
+        let svg2 = d3.select("body").select("svg")
+       
+
+        let popup=d3.select(".pop-up")
+            
+    
+
+
+        let counties = svg2.append("g")
+         .selectAll(".counties")
+         .data(county.features) // Bind TopoJSON data elements
+         .enter().append("path")
+         .attr("d", path)
+         .style("fill", function (d) { return color(d.properties.Unin_children)})
+         .attr("class", function (d) { return "counties p-" + d.properties.GEOID}) 
+         .style("stroke", "white")
+         .style("stroke-width", .5)
+        //  .style("stroke-opacity", .5)
+        //  .on("mouseover", mouseOver )
+        //  .on("mouseleave", mouseLeave )
+
+
+
+         counties.on("mouseover", (event,d) => {
+            console.log(event)
+        
+                counties
+                .select(".p-" + d.properties.GEOID) 
+                  .style("stroke", "white")
+                  .style("stroke-width", .5)
+                //   .style("fill", "orange")
+                  .transition()
+                  .duration(200)
+                //   .style("fill",function (d) { return color(d.properties.Unin_children)})
+                //   .style("opacity", .5)
+                  
+                svg.select(".p-" + d.properties.GEOID)
+                  .style("fill","orange")
+                //   .transition()
+                //   .duration(200)
+                //   .style("opacity", 1)
+                  .style("stroke", "white")
+                //   .raise()
+
+
+            let reScaleLang = d3.scaleThreshold()
+                .domain([0]) //make sure to put this in brackets!
+                .range(["below", "above"])
+
+            let diff = +d.mnav3poolgcs -2
+
+            let lang = "In " + d.properties.County + " County : " + d.properties.Unin_children + " children are uninsured in 2021 "
+            // let lang = "showing"
+            popup
+                .style("opacity", 1)
+                .style("left", (event.x - 50) + "px")
+                .style("top", (event.y - 100) + "px")
+                .html(lang)
+        })
+
+        counties.on("mouseout", (event, d) => {
+            // console.log(event)
+            counties
+                .select(".p-" + d.properties.GEOID )
+                .transition()
+                .duration(200)
+                // .style("opacity", .8)
+                // .style("fill",function (d) { return color(d.properties.Unin_children)})
+                
+            svg.select(".p-" + d.properties.GEOID)
+                // .transition()
+                // .duration(2000)
+                // .style("stroke", "transparent")
+                .style("fill",function (d) { return color(d.properties.Unin_children)})
+                .style("stroke", "white")
+            popup
+                .style("opacity", 0)
+                
+
+
+        })
+
+        var legend = svg.append('g')
+		.attr("transform", "translate(" + width * .5 + "," + (height * .85) + ")")
+		.attr('class','key');
+
+        legend.selectAll("rect")
+		.data(pair(x1.ticks(20)))
+		.enter().append("rect")
+			.attr("height", 20)
+			.attr("x", function(d) { return x1(d[0]); })
+			.attr("width", function(d) { return x1(d[1]) - x1(d[0]); })
+			.style("fill", function(d) { return color(d.properties.Unin_children)});
+
+	    legend.call(legendAxis).append("text")
+		.attr("class", "caption")
+		.attr("y", -10)
+		.text("Percentage"); 
+
+
+
+        
+
+
+
+
+
+
+
+
+
+        }
+
+    
+
+
+
+</script>
